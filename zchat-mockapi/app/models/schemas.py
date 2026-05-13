@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -23,6 +25,7 @@ ChatRequest - מודל הבקשה ל-endpoint /chat
 class ChatRequest(BaseModel):
     message: str                              # תוכן ההודעה שהמשתמש שלח. שדה חובה
     session_id: str | None = None             # מזהה השיחה. None בהודעה הראשונה (השרת ייצור אחד חדש)
+    timestamp: str | None = None              # זמן שליחת ההודעה במחשב הלקוח (ISO 8601). אופציונלי לתאימות לאחור
     unit: str | None = None                   # יחידת המשתמש (override של מה שנשלח ב-init)
     reality: str | None = None                # הסביבה (override של init)
     module: str | None = None                 # המודול הנוכחי (override של init)
@@ -39,6 +42,7 @@ Entity - מודל של ישות גיאוגרפית
 class Entity(BaseModel):
     layer: str | None = None        # שם השכבה שהישות שייכת אליה (למשל "כבישים", "בניינים")
     entity_id: str | None = None    # מזהה ייחודי של הישות במערכת המקור
+    name: str | None = None         # שם תצוגה (לדוגמה "כוח א", "מטרה X") - לזיהוי בתוך טקסט התשובה
     geometry: str | None = None     # הצורה הגיאומטרית במחרוזת WKT (פירוט מלא בתיעוד למטה)
     """
     WKT geometry string using lat/lon (WGS84) coordinates.
@@ -68,3 +72,58 @@ class ChatResponse(BaseModel):
     clarify_for: str | None = None          # אם נדרשת הבהרה - הנושא/השדה שצריך להבהיר
     reasoning_content: str | None = None    # תוכן חשיבה פנימית של המודל (chain of thought) לדיבוג/הצגה
     entities: list[Entity] = []             # מערך ישויות שזוהו/הופקו. ברירת מחדל רשימה ריקה (לא None)
+
+
+"""
+FeedbackRequest - מודל הבקשה ל-endpoint /feedback
+מייצג משוב משתמש על הודעת בוט - חיובי (Like) או שלילי (Dislike).
+במשוב שלילי המשתמש יכול לבחור סיבה מרשימה סגורה, או "אחר" עם טקסט חופשי.
+אם לחץ X על הדיאלוג - יישלח רק sentiment ללא reason/free_text.
+"""
+class FeedbackRequest(BaseModel):
+    session_id: str                                       # מזהה השיחה שאליה שייכת ההודעה
+    message_id: str | None = None                         # מזהה ההודעה הספציפית (אופציונלי)
+    sentiment: Literal["positive", "negative"]            # חיובי = Like, שלילי = Dislike
+    reason: str | None = None                             # סיבה מהרשימה הסגורה, או "אחר"
+    free_text: str | None = None                          # טקסט חופשי - בעיקר כש-reason="אחר"
+    timestamp: str | None = None                          # זמן השליחה (ISO 8601)
+
+
+"""
+ConversationSummary - תקציר של שיחה היסטורית לצורך הצגה ברשימה
+מוחזר כחלק מ-HistoryResponse. מכיל את מזהה הסשן וכותרת תיאורית.
+"""
+class ConversationSummary(BaseModel):
+    session_id: str                  # מזהה הסשן (לרוב בפורמט "userId:timestamp")
+    summary: str                     # כותרת תיאורית להצגה ברשימה
+
+
+"""
+HistoryResponse - תגובת ה-endpoint /history
+עטיפה שמכילה את מספר המשתמש ואת רשימת השיחות שלו.
+"""
+class HistoryResponse(BaseModel):
+    user_personal_number: str                       # מזהה המשתמש שאליו שייכות השיחות
+    conversations: list[ConversationSummary]        # רשימת תקצירי השיחות
+
+
+"""
+ConversationMessage - הודעה בודדת בשיחה שמורה
+sender: 'user' = שאלה מהמשתמש, 'bot' = תשובה מהמערכת.
+timestamp: ISO 8601. אצל user - הזמן שהמשתמש לחץ Enter. אצל bot - זמן השרת.
+"""
+class ConversationMessage(BaseModel):
+    message_id: str                                 # מזהה ייחודי להודעה
+    sender: Literal["user", "bot"]                  # שולח ההודעה
+    text: str                                       # תוכן ההודעה
+    timestamp: str                                  # זמן ב-ISO 8601
+
+
+"""
+ConversationDetail - תגובת ה-endpoint להחזרת שיחה מלאה לפי session_id
+מכיל את כל ההודעות של השיחה (גם של המשתמש וגם של הבוט) לתצוגה למצב read-only.
+"""
+class ConversationDetail(BaseModel):
+    session_id: str
+    summary: str
+    messages: list[ConversationMessage]             # כל ההודעות בסדר כרונולוגי

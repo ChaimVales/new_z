@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Minus, Send, MessageSquare, X, Maximize2, Minimize2,
     PanelLeft, PanelRight, PanelTop, PanelBottom,
+    MessageCircle, ChevronLeft,
 } from 'lucide-react';
+
+// קישור קבוע לקבוצת ה-WhatsApp של פורום המשתמשים
+const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/Bamq9l5ehPQ2pAvvRdEDne';
 
 type DockPosition = 'left' | 'right' | 'top' | 'bottom';
 
@@ -242,6 +246,24 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
                         <X size={15} />
                     </button>
                 </div>
+            </div>
+
+            {/* כפתור קישור קבוע - פורום המשתמשים ב-WhatsApp */}
+            <div className="px-3 pt-3 flex-shrink-0">
+                <a
+                    href={WHATSAPP_GROUP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center justify-center gap-2 w-full px-3 py-2 bg-[#25D366] hover:bg-[#1da851] active:bg-[#168a42] text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-lg active:shadow-sm active:translate-y-px transition-all duration-150 ring-1 ring-[#1da851]/30"
+                    title="לחץ להצטרפות לקבוצת ה-WhatsApp"
+                >
+                    <MessageCircle size={16} strokeWidth={2.5} className="flex-shrink-0" />
+                    <span>הצטרף לפורום המשתמשים</span>
+                    <ChevronLeft
+                        size={15}
+                        className="opacity-80 group-hover:-translate-x-0.5 transition-transform flex-shrink-0"
+                    />
+                </a>
             </div>
 
             {/* תוכן הצ'אט - מציג את כל ההודעות מהסטייט */}
